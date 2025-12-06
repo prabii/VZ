@@ -138,8 +138,8 @@ const awbSchema = new mongoose.Schema({
   // Tracking Status
   status: {
     type: String,
-    enum: ['pending', 'in_transit', 'out_for_delivery', 'delivered', 'returned', 'cancelled'],
-    default: 'pending',
+    enum: ['Couriers', 'Courier Pickup', 'Shipped', 'Intransit', 'Arrived at Destination', 'Out for Delivery', 'Pending Order', 'Delivered'],
+    default: 'Pending Order',
     index: true
   },
   

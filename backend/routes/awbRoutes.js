@@ -7,6 +7,7 @@ import {
   createAWB,
   updateAWB,
   updateTrackingStatus,
+  updateTrackingStatusByAWBNo,
   trackAWB,
   deleteAWB,
   getAWBStats
@@ -41,6 +42,9 @@ router.put('/:id', updateAWB);
 
 // Update tracking status
 router.put('/:id/tracking', updateTrackingStatus);
+
+// Update tracking status by AWB number
+router.put('/number/:awbNo/tracking', updateTrackingStatusByAWBNo);
 
 // Delete AWB
 router.delete('/:id', deleteAWB);

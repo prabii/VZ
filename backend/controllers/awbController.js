@@ -105,8 +105,9 @@ export const createAWB = async (req, res) => {
   try {
     const awb = new AWB({
       ...req.body,
+      status: req.body.status || 'Pending Order',
       trackingHistory: [{
-        status: 'pending',
+        status: req.body.status || 'Pending Order',
         description: 'AWB created',
         timestamp: new Date()
       }]
@@ -176,7 +177,7 @@ export const updateTrackingStatus = async (req, res) => {
 export const trackAWB = async (req, res) => {
   try {
     const awb = await AWB.findOne({ awbNo: req.params.awbNo })
-      .select('awbNo status trackingHistory origin destination bookingDate');
+      .select('awbNo status trackingHistory origin destination bookingDate shipper consignee');
     
     if (!awb) {
       return res.status(404).json({ message: 'AWB not found' });
@@ -188,10 +189,45 @@ export const trackAWB = async (req, res) => {
       origin: awb.origin,
       destination: awb.destination,
       bookingDate: awb.bookingDate,
-      trackingHistory: awb.trackingHistory.sort((a, b) => b.timestamp - a.timestamp)
+      shipper: awb.shipper,
+      consignee: awb.consignee,
+      trackingHistory: awb.trackingHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Update tracking status by AWB number
+export const updateTrackingStatusByAWBNo = async (req, res) => {
+  try {
+    const { status, location, description, updatedBy } = req.body;
+    
+    const awb = await AWB.findOne({ awbNo: req.params.awbNo });
+    if (!awb) {
+      return res.status(404).json({ message: 'AWB not found' });
+    }
+    
+    // Add to tracking history
+    awb.trackingHistory.push({
+      status: status || awb.status,
+      location,
+      description,
+      updatedBy,
+      timestamp: new Date()
+    });
+    
+    // Update status if provided
+    if (status) {
+      awb.status = status;
+    }
+    
+    awb.updatedAt = Date.now();
+    await awb.save();
+    
+    res.json(awb);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 };
 
