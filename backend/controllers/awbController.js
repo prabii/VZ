@@ -103,11 +103,21 @@ export const getAWBsByCustomer = async (req, res) => {
 // Create AWB
 export const createAWB = async (req, res) => {
   try {
+    // Ensure status is valid - normalize to 'Pending Order' if invalid
+    const validStatuses = ['Couriers', 'Courier Pickup', 'Shipped', 'Intransit', 'Arrived at Destination', 'Out for Delivery', 'Pending Order', 'Delivered'];
+    let status = req.body.status || 'Pending Order';
+    
+    // If status is not in valid list, default to 'Pending Order'
+    if (!validStatuses.includes(status)) {
+      console.warn(`Invalid AWB status received: "${status}", defaulting to "Pending Order"`);
+      status = 'Pending Order';
+    }
+    
     const awb = new AWB({
       ...req.body,
-      status: req.body.status || 'Pending Order',
+      status: status,
       trackingHistory: [{
-        status: req.body.status || 'Pending Order',
+        status: status,
         description: 'AWB created',
         timestamp: new Date()
       }]
