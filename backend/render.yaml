@@ -3,6 +3,7 @@ services:
     name: vzcourier-backend
     env: node
     plan: free
+    rootDir: VZ/backend
     buildCommand: npm install
     startCommand: npm start
     envVars:
