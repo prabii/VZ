@@ -5,6 +5,7 @@ import connectDB from './config/db.js';
 import customerRoutes from './routes/customerRoutes.js';
 import invoiceRoutes from './routes/invoiceRoutes.js';
 import awbRoutes from './routes/awbRoutes.js';
+import branchLocationRoutes from './routes/branchLocationRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -56,6 +57,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/customers', customerRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/awb', awbRoutes);
+app.use('/api/branch-locations', branchLocationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
