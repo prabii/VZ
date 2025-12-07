@@ -21,11 +21,11 @@ const seedBranchLocations = async () => {
     
     // Create default branch location
     const defaultBranch = new BranchLocation({
+      city: 'Jamnagar',
       address: 'PLOT NO 40, SARDAR PATEL SOCIETY 2, SARU SECTION ROAD, JAMNAGAR, GUJARAT',
       mobileNumber: '9537314061',
       email: 'momai.international1@gmail.com',
       contactPerson: 'HITESH MANILAL VADHER',
-      city: 'Jamnagar',
       state: 'Gujarat',
       pincode: '361001',
       isActive: true

@@ -38,21 +38,21 @@ export const getBranchLocationById = async (req, res) => {
 // Create branch location
 export const createBranchLocation = async (req, res) => {
   try {
-    const { address, mobileNumber, email, contactPerson, city, state, pincode } = req.body;
+    const { city, address, mobileNumber, email, contactPerson, state, pincode } = req.body;
     
     // Validate required fields
-    if (!address || !mobileNumber || !email || !contactPerson) {
+    if (!city || !address || !mobileNumber || !email || !contactPerson) {
       return res.status(400).json({ 
-        message: 'Address, mobile number, email, and contact person are required' 
+        message: 'City, address, mobile number, email, and contact person are required' 
       });
     }
     
     const branch = new BranchLocation({
+      city,
       address,
       mobileNumber,
       email,
       contactPerson,
-      city,
       state,
       pincode
     });

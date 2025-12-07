@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 
 const branchLocationSchema = new mongoose.Schema({
+  city: {
+    type: String,
+    required: true,
+    trim: true
+  },
   address: {
     type: String,
     required: true,
@@ -23,10 +28,6 @@ const branchLocationSchema = new mongoose.Schema({
     trim: true
   },
   // Optional fields for future expansion
-  city: {
-    type: String,
-    trim: true
-  },
   state: {
     type: String,
     trim: true
