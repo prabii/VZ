@@ -75,11 +75,11 @@ const awbSchema = new mongoose.Schema({
   },
   website: {
     type: String,
-    default: 'WWW.VISAKHACOURIERS.COM'
+    default: 'visakhacouriers.in'
   },
   email: {
     type: String,
-    default: 'INFO@VISAKHACOURIERS.COM'
+    default: 'INFO@VISAKHACOURIERS.IN'
   },
   
   // Parties
