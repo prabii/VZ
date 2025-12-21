@@ -222,7 +222,17 @@ export const updateTrackingStatusByAWBNo = async (req, res) => {
     }
     
     // Use provided timestamp or default to current date/time
-    const statusTimestamp = timestamp ? new Date(timestamp) : new Date();
+    let statusTimestamp;
+    if (timestamp) {
+      statusTimestamp = new Date(timestamp);
+      // Validate the date
+      if (isNaN(statusTimestamp.getTime())) {
+        // Invalid date, use current time
+        statusTimestamp = new Date();
+      }
+    } else {
+      statusTimestamp = new Date();
+    }
     
     // Add to tracking history
     awb.trackingHistory.push({
