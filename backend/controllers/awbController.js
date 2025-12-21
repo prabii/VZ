@@ -153,12 +153,15 @@ export const updateAWB = async (req, res) => {
 // Update AWB tracking status
 export const updateTrackingStatus = async (req, res) => {
   try {
-    const { status, location, description, updatedBy } = req.body;
+    const { status, location, description, updatedBy, timestamp } = req.body;
     
     const awb = await AWB.findById(req.params.id);
     if (!awb) {
       return res.status(404).json({ message: 'AWB not found' });
     }
+    
+    // Use provided timestamp or default to current date/time
+    const statusTimestamp = timestamp ? new Date(timestamp) : new Date();
     
     // Add to tracking history
     awb.trackingHistory.push({
@@ -166,7 +169,7 @@ export const updateTrackingStatus = async (req, res) => {
       location,
       description,
       updatedBy,
-      timestamp: new Date()
+      timestamp: statusTimestamp
     });
     
     // Update status if provided
@@ -211,12 +214,15 @@ export const trackAWB = async (req, res) => {
 // Update tracking status by AWB number
 export const updateTrackingStatusByAWBNo = async (req, res) => {
   try {
-    const { status, location, description, updatedBy } = req.body;
+    const { status, location, description, updatedBy, timestamp } = req.body;
     
     const awb = await AWB.findOne({ awbNo: req.params.awbNo });
     if (!awb) {
       return res.status(404).json({ message: 'AWB not found' });
     }
+    
+    // Use provided timestamp or default to current date/time
+    const statusTimestamp = timestamp ? new Date(timestamp) : new Date();
     
     // Add to tracking history
     awb.trackingHistory.push({
@@ -224,7 +230,7 @@ export const updateTrackingStatusByAWBNo = async (req, res) => {
       location,
       description,
       updatedBy,
-      timestamp: new Date()
+      timestamp: statusTimestamp
     });
     
     // Update status if provided
