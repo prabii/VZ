@@ -216,6 +216,16 @@ export const updateTrackingStatusByAWBNo = async (req, res) => {
   try {
     const { status, location, description, updatedBy, timestamp } = req.body;
     
+    console.log('Update tracking request:', {
+      awbNo: req.params.awbNo,
+      status,
+      location,
+      description,
+      updatedBy,
+      timestamp,
+      timestampType: typeof timestamp
+    });
+    
     const awb = await AWB.findOne({ awbNo: req.params.awbNo });
     if (!awb) {
       return res.status(404).json({ message: 'AWB not found' });
@@ -224,24 +234,33 @@ export const updateTrackingStatusByAWBNo = async (req, res) => {
     // Use provided timestamp or default to current date/time
     let statusTimestamp;
     if (timestamp) {
+      // Parse the timestamp - it should be an ISO string from frontend
       statusTimestamp = new Date(timestamp);
       // Validate the date
       if (isNaN(statusTimestamp.getTime())) {
+        console.warn('Invalid timestamp provided, using current time:', timestamp);
         // Invalid date, use current time
         statusTimestamp = new Date();
+      } else {
+        console.log('Using provided timestamp:', statusTimestamp.toISOString());
       }
     } else {
+      console.log('No timestamp provided, using current time');
       statusTimestamp = new Date();
     }
     
     // Add to tracking history
-    awb.trackingHistory.push({
+    const trackingEntry = {
       status: status || awb.status,
       location,
       description,
       updatedBy,
       timestamp: statusTimestamp
-    });
+    };
+    
+    console.log('Adding tracking entry:', trackingEntry);
+    
+    awb.trackingHistory.push(trackingEntry);
     
     // Update status if provided
     if (status) {
@@ -251,8 +270,15 @@ export const updateTrackingStatusByAWBNo = async (req, res) => {
     awb.updatedAt = Date.now();
     await awb.save();
     
-    res.json(awb);
+    // Return the updated AWB with the new tracking entry
+    const updatedAWB = await AWB.findOne({ awbNo: req.params.awbNo });
+    const latestEntry = updatedAWB.trackingHistory[updatedAWB.trackingHistory.length - 1];
+    console.log('Tracking updated successfully. Latest entry timestamp:', latestEntry.timestamp);
+    console.log('Latest entry:', JSON.stringify(latestEntry, null, 2));
+    
+    res.json(updatedAWB);
   } catch (error) {
+    console.error('Error updating tracking status:', error);
     res.status(400).json({ message: error.message });
   }
 };
