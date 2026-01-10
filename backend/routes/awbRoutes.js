@@ -17,6 +17,14 @@ import {
 
 const router = express.Router();
 
+// Log all registered routes for debugging
+router.use((req, res, next) => {
+  if (req.method === 'PUT' && req.path.includes('booking-date')) {
+    console.log('PUT request to booking-date route:', req.method, req.path, req.params);
+  }
+  next();
+});
+
 // Get all AWBs with filters
 router.get('/', getAllAWBs);
 
@@ -40,6 +48,7 @@ router.get('/account/:accountNo', getAWBsByCustomer);
 router.post('/', createAWB);
 
 // Update booking date/time by AWB number (must come before /:id routes)
+// IMPORTANT: This route must be registered before any /:id routes to avoid route conflicts
 router.put('/number/:awbNo/booking-date', updateBookingDateByAWBNo);
 
 // Update tracking status by AWB number (must come before /:id routes)

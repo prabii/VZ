@@ -289,6 +289,7 @@ export const updateBookingDate = async (req, res) => {
 // Update booking date/time by AWB number (Admin only)
 export const updateBookingDateByAWBNo = async (req, res) => {
   try {
+    console.log('updateBookingDateByAWBNo called:', req.method, req.path, req.params, req.body);
     const { bookingDate, userRole } = req.body;
     
     // Only admin can update booking date
