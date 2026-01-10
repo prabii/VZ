@@ -39,20 +39,20 @@ router.get('/account/:accountNo', getAWBsByCustomer);
 // Create new AWB
 router.post('/', createAWB);
 
-// Update AWB
-router.put('/:id', updateAWB);
-
-// Update booking date/time by ID
-router.put('/:id/booking-date', updateBookingDate);
-
-// Update booking date/time by AWB number
+// Update booking date/time by AWB number (must come before /:id routes)
 router.put('/number/:awbNo/booking-date', updateBookingDateByAWBNo);
 
-// Update tracking status
+// Update tracking status by AWB number (must come before /:id routes)
+router.put('/number/:awbNo/tracking', updateTrackingStatusByAWBNo);
+
+// Update booking date/time by ID (must come before /:id route)
+router.put('/:id/booking-date', updateBookingDate);
+
+// Update tracking status (must come before /:id route)
 router.put('/:id/tracking', updateTrackingStatus);
 
-// Update tracking status by AWB number
-router.put('/number/:awbNo/tracking', updateTrackingStatusByAWBNo);
+// Update AWB (general route - must come last)
+router.put('/:id', updateAWB);
 
 // Delete AWB
 router.delete('/:id', deleteAWB);
