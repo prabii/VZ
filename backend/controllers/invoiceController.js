@@ -10,10 +10,26 @@ export const getAllInvoices = async (req, res) => {
       status = '',
       accountNo = '',
       startDate = '',
-      endDate = ''
+      endDate = '',
+      vendorId = '',
+      userRole = ''
     } = req.query;
     
     const query = {};
+    
+    // If vendor user, only show their invoices. Admin can see all
+    if (vendorId && userRole === 'vendor') {
+      query.vendorId = vendorId;
+    }
+    // If no vendorId but userRole is vendor, don't show any (shouldn't happen, but safety check)
+    else if (userRole === 'vendor' && !vendorId) {
+      return res.json({
+        invoices: [],
+        totalPages: 0,
+        currentPage: page,
+        total: 0
+      });
+    }
     
     if (search) {
       query.$or = [
@@ -103,7 +119,13 @@ export const getInvoicesByCustomer = async (req, res) => {
 // Create invoice
 export const createInvoice = async (req, res) => {
   try {
-    const invoice = new Invoice(req.body);
+    // Get vendorId from request body or query (set by frontend based on logged-in user)
+    const vendorId = req.body.vendorId || req.query.vendorId;
+    
+    const invoice = new Invoice({
+      ...req.body,
+      vendorId: vendorId || undefined // Set vendorId if provided
+    });
     const savedInvoice = await invoice.save();
     res.status(201).json(savedInvoice);
   } catch (error) {

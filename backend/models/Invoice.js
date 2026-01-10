@@ -134,6 +134,13 @@ const invoiceSchema = new mongoose.Schema({
     index: true
   },
   
+  // Vendor Reference (for vendor users)
+  vendorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    index: true
+  },
+  
   // Status
   status: {
     type: String,

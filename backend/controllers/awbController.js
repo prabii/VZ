@@ -10,10 +10,26 @@ export const getAllAWBs = async (req, res) => {
       status = '',
       accountNo = '',
       startDate = '',
-      endDate = ''
+      endDate = '',
+      vendorId = '',
+      userRole = ''
     } = req.query;
     
     const query = {};
+    
+    // If vendor user, only show their AWBs. Admin can see all
+    if (vendorId && userRole === 'vendor') {
+      query.vendorId = vendorId;
+    }
+    // If no vendorId but userRole is vendor, don't show any (shouldn't happen, but safety check)
+    else if (userRole === 'vendor' && !vendorId) {
+      return res.json({
+        awbs: [],
+        totalPages: 0,
+        currentPage: page,
+        total: 0
+      });
+    }
     
     if (search) {
       query.$or = [
@@ -113,8 +129,12 @@ export const createAWB = async (req, res) => {
       status = 'Pending Order';
     }
     
+    // Get vendorId from request body or query (set by frontend based on logged-in user)
+    const vendorId = req.body.vendorId || req.query.vendorId;
+    
     const awb = new AWB({
       ...req.body,
+      vendorId: vendorId || undefined, // Set vendorId if provided
       status: status,
       trackingHistory: [{
         status: status,
@@ -224,10 +244,15 @@ export const trackAWB = async (req, res) => {
   }
 };
 
-// Update booking date/time by AWB ID
+// Update booking date/time by AWB ID (Admin only)
 export const updateBookingDate = async (req, res) => {
   try {
-    const { bookingDate } = req.body;
+    const { bookingDate, userRole } = req.body;
+    
+    // Only admin can update booking date
+    if (userRole !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can update booking date and time' });
+    }
     
     if (!bookingDate) {
       return res.status(400).json({ message: 'Booking date is required' });
@@ -261,10 +286,15 @@ export const updateBookingDate = async (req, res) => {
   }
 };
 
-// Update booking date/time by AWB number
+// Update booking date/time by AWB number (Admin only)
 export const updateBookingDateByAWBNo = async (req, res) => {
   try {
-    const { bookingDate } = req.body;
+    const { bookingDate, userRole } = req.body;
+    
+    // Only admin can update booking date
+    if (userRole !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can update booking date and time' });
+    }
     
     if (!bookingDate) {
       return res.status(400).json({ message: 'Booking date is required' });
