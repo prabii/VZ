@@ -136,9 +136,22 @@ export const createAWB = async (req, res) => {
 // Update AWB
 export const updateAWB = async (req, res) => {
   try {
+    const updateData = { ...req.body };
+    
+    // Handle bookingDate update - parse and validate date/time
+    if (updateData.bookingDate) {
+      const bookingDate = new Date(updateData.bookingDate);
+      if (isNaN(bookingDate.getTime())) {
+        return res.status(400).json({ message: 'Invalid booking date format' });
+      }
+      updateData.bookingDate = bookingDate;
+    }
+    
+    updateData.updatedAt = Date.now();
+    
     const awb = await AWB.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, updatedAt: Date.now() },
+      updateData,
       { new: true, runValidators: true }
     );
     if (!awb) {
@@ -208,6 +221,80 @@ export const trackAWB = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Update booking date/time by AWB ID
+export const updateBookingDate = async (req, res) => {
+  try {
+    const { bookingDate } = req.body;
+    
+    if (!bookingDate) {
+      return res.status(400).json({ message: 'Booking date is required' });
+    }
+    
+    // Parse and validate the date
+    const parsedDate = new Date(bookingDate);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid booking date format. Please use ISO 8601 format (e.g., 2024-12-25T14:30:00)' });
+    }
+    
+    const awb = await AWB.findByIdAndUpdate(
+      req.params.id,
+      { 
+        bookingDate: parsedDate,
+        updatedAt: Date.now()
+      },
+      { new: true, runValidators: true }
+    );
+    
+    if (!awb) {
+      return res.status(404).json({ message: 'AWB not found' });
+    }
+    
+    res.json({
+      message: 'Booking date updated successfully',
+      awb: awb
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Update booking date/time by AWB number
+export const updateBookingDateByAWBNo = async (req, res) => {
+  try {
+    const { bookingDate } = req.body;
+    
+    if (!bookingDate) {
+      return res.status(400).json({ message: 'Booking date is required' });
+    }
+    
+    // Parse and validate the date
+    const parsedDate = new Date(bookingDate);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid booking date format. Please use ISO 8601 format (e.g., 2024-12-25T14:30:00)' });
+    }
+    
+    const awb = await AWB.findOneAndUpdate(
+      { awbNo: req.params.awbNo },
+      { 
+        bookingDate: parsedDate,
+        updatedAt: Date.now()
+      },
+      { new: true, runValidators: true }
+    );
+    
+    if (!awb) {
+      return res.status(404).json({ message: 'AWB not found' });
+    }
+    
+    res.json({
+      message: 'Booking date updated successfully',
+      awb: awb
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 };
 

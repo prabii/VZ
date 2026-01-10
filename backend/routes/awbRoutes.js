@@ -6,6 +6,8 @@ import {
   getAWBsByCustomer,
   createAWB,
   updateAWB,
+  updateBookingDate,
+  updateBookingDateByAWBNo,
   updateTrackingStatus,
   updateTrackingStatusByAWBNo,
   trackAWB,
@@ -39,6 +41,12 @@ router.post('/', createAWB);
 
 // Update AWB
 router.put('/:id', updateAWB);
+
+// Update booking date/time by ID
+router.put('/:id/booking-date', updateBookingDate);
+
+// Update booking date/time by AWB number
+router.put('/number/:awbNo/booking-date', updateBookingDateByAWBNo);
 
 // Update tracking status
 router.put('/:id/tracking', updateTrackingStatus);
