@@ -264,18 +264,32 @@ export const updateBookingDate = async (req, res) => {
       return res.status(400).json({ message: 'Invalid booking date format. Please use ISO 8601 format (e.g., 2024-12-25T14:30:00)' });
     }
     
-    const awb = await AWB.findByIdAndUpdate(
-      req.params.id,
-      { 
-        bookingDate: parsedDate,
-        updatedAt: Date.now()
-      },
-      { new: true, runValidators: true }
-    );
-    
+    const awb = await AWB.findById(req.params.id);
     if (!awb) {
       return res.status(404).json({ message: 'AWB not found' });
     }
+    
+    // Update booking date
+    awb.bookingDate = parsedDate;
+    awb.updatedAt = Date.now();
+    
+    // Update the first tracking history entry (AWB created) timestamp to match booking date
+    if (awb.trackingHistory && awb.trackingHistory.length > 0) {
+      // Find the "AWB created" entry (usually the first one)
+      const createdEntry = awb.trackingHistory.find(entry => 
+        entry.description && entry.description.toLowerCase().includes('awb created')
+      );
+      if (createdEntry) {
+        createdEntry.timestamp = parsedDate;
+        console.log('Updated "AWB created" entry timestamp to:', parsedDate);
+      } else if (awb.trackingHistory[0]) {
+        // If no "AWB created" entry found, update the first entry
+        awb.trackingHistory[0].timestamp = parsedDate;
+        console.log('Updated first tracking history entry timestamp to:', parsedDate);
+      }
+    }
+    
+    await awb.save();
     
     res.json({
       message: 'Booking date updated successfully',
@@ -307,18 +321,32 @@ export const updateBookingDateByAWBNo = async (req, res) => {
       return res.status(400).json({ message: 'Invalid booking date format. Please use ISO 8601 format (e.g., 2024-12-25T14:30:00)' });
     }
     
-    const awb = await AWB.findOneAndUpdate(
-      { awbNo: req.params.awbNo },
-      { 
-        bookingDate: parsedDate,
-        updatedAt: Date.now()
-      },
-      { new: true, runValidators: true }
-    );
-    
+    const awb = await AWB.findOne({ awbNo: req.params.awbNo });
     if (!awb) {
       return res.status(404).json({ message: 'AWB not found' });
     }
+    
+    // Update booking date
+    awb.bookingDate = parsedDate;
+    awb.updatedAt = Date.now();
+    
+    // Update the first tracking history entry (AWB created) timestamp to match booking date
+    if (awb.trackingHistory && awb.trackingHistory.length > 0) {
+      // Find the "AWB created" entry (usually the first one)
+      const createdEntry = awb.trackingHistory.find(entry => 
+        entry.description && entry.description.toLowerCase().includes('awb created')
+      );
+      if (createdEntry) {
+        createdEntry.timestamp = parsedDate;
+        console.log('Updated "AWB created" entry timestamp to:', parsedDate);
+      } else if (awb.trackingHistory[0]) {
+        // If no "AWB created" entry found, update the first entry
+        awb.trackingHistory[0].timestamp = parsedDate;
+        console.log('Updated first tracking history entry timestamp to:', parsedDate);
+      }
+    }
+    
+    await awb.save();
     
     res.json({
       message: 'Booking date updated successfully',
