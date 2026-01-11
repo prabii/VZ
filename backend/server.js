@@ -70,13 +70,28 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
+// 404 handler with detailed logging
 app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found' });
+  console.log('❌ 404 - Route not found:', {
+    method: req.method,
+    path: req.path,
+    originalUrl: req.originalUrl,
+    baseUrl: req.baseUrl,
+    url: req.url
+  });
+  res.status(404).json({ 
+    message: 'Route not found',
+    method: req.method,
+    path: req.path,
+    originalUrl: req.originalUrl
+  });
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 CORS enabled for: ${allowedOrigins.join(', ')}`);
+  console.log(`📋 AWB Routes registered at: /api/awb`);
+  console.log(`   - PUT /api/awb/number/:awbNo/booking-date`);
+  console.log(`   - PUT /api/awb/number/:awbNo/tracking`);
 });

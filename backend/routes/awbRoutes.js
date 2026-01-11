@@ -17,10 +17,16 @@ import {
 
 const router = express.Router();
 
-// Log all registered routes for debugging
+// Log all PUT requests for debugging
 router.use((req, res, next) => {
-  if (req.method === 'PUT' && req.path.includes('booking-date')) {
-    console.log('PUT request to booking-date route:', req.method, req.path, req.params);
+  if (req.method === 'PUT') {
+    console.log('🔍 PUT request received:', {
+      method: req.method,
+      path: req.path,
+      originalUrl: req.originalUrl,
+      baseUrl: req.baseUrl,
+      url: req.url
+    });
   }
   next();
 });
@@ -47,8 +53,9 @@ router.get('/account/:accountNo', getAWBsByCustomer);
 // Create new AWB
 router.post('/', createAWB);
 
-// Update booking date/time by AWB number (must come before /:id routes)
-// IMPORTANT: This route must be registered before any /:id routes to avoid route conflicts
+// ========== PUT ROUTES - Must be in specific order ==========
+// Update booking date/time by AWB number (MUST come before /:id routes)
+// This route handles: PUT /api/awb/number/:awbNo/booking-date
 router.put('/number/:awbNo/booking-date', updateBookingDateByAWBNo);
 
 // Update tracking status by AWB number (must come before /:id routes)
