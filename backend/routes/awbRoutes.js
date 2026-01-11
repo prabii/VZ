@@ -56,7 +56,12 @@ router.post('/', createAWB);
 // ========== PUT ROUTES - Must be in specific order ==========
 // Update booking date/time by AWB number (MUST come before /:id routes)
 // This route handles: PUT /api/awb/number/:awbNo/booking-date
-router.put('/number/:awbNo/booking-date', updateBookingDateByAWBNo);
+router.put('/number/:awbNo/booking-date', async (req, res, next) => {
+  console.log('🎯 Route handler matched: PUT /number/:awbNo/booking-date');
+  console.log('   Params:', req.params);
+  console.log('   Body:', req.body);
+  next();
+}, updateBookingDateByAWBNo);
 
 // Update tracking status by AWB number (must come before /:id routes)
 router.put('/number/:awbNo/tracking', updateTrackingStatusByAWBNo);
