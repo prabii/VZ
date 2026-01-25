@@ -62,6 +62,42 @@ export const getActivePriceSheet = async (req, res) => {
   }
 };
 
+// Create empty price sheet
+export const createPriceSheet = async (req, res) => {
+  try {
+    const { sheetName, description, isDefault, uploadedBy } = req.body;
+    
+    if (!sheetName || !sheetName.trim()) {
+      return res.status(400).json({ message: 'Sheet name is required' });
+    }
+    
+    // If setting as default, unset other defaults
+    if (isDefault === true || isDefault === 'true') {
+      await PriceSheet.updateMany({}, { isDefault: false });
+    }
+    
+    // Create price sheet with empty items
+    const priceSheet = new PriceSheet({
+      sheetName: sheetName.trim(),
+      description: description || '',
+      items: [],
+      uploadedBy: uploadedBy || undefined,
+      isActive: true,
+      isDefault: isDefault === true || isDefault === 'true'
+    });
+    
+    await priceSheet.save();
+    
+    res.status(201).json({
+      message: 'Price sheet created successfully',
+      priceSheet: await PriceSheet.findById(priceSheet._id).populate('uploadedBy', 'username vendorName')
+    });
+  } catch (error) {
+    console.error('Error creating price sheet:', error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
 // Upload and parse Excel file
 export const uploadPriceSheet = async (req, res) => {
   try {

@@ -8,6 +8,8 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "seed:branches": "node scripts/seedBranchLocations.js",
+    "import:prices": "node scripts/importPriceSheet.js",
+    "import:prices:api": "node scripts/importPriceSheetViaAPI.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {

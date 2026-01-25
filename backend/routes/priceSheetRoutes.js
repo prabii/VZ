@@ -4,6 +4,7 @@ import {
   getAllPriceSheets,
   getPriceSheetById,
   getActivePriceSheet,
+  createPriceSheet,
   uploadPriceSheet,
   updatePriceSheet,
   deletePriceSheet,
@@ -44,6 +45,9 @@ router.get('/active', getActivePriceSheet);
 
 // Get price sheet by ID
 router.get('/:id', getPriceSheetById);
+
+// Create empty price sheet
+router.post('/', createPriceSheet);
 
 // Upload price sheet (Excel file)
 router.post('/upload', upload.single('file'), uploadPriceSheet);
