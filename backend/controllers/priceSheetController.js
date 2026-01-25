@@ -107,6 +107,10 @@ export const uploadPriceSheet = async (req, res) => {
     const destinationIndex = headers.findIndex(h => 
       h && h.toString().toLowerCase().includes('destination')
     );
+    const countryIndex = headers.findIndex(h => 
+      h && (h.toString().toLowerCase().includes('country') ||
+           h.toString().toLowerCase().includes('nation'))
+    );
     const serviceIndex = headers.findIndex(h => 
       h && h.toString().toLowerCase().includes('service')
     );
@@ -121,6 +125,7 @@ export const uploadPriceSheet = async (req, res) => {
       const weight = weightIndex >= 0 ? (row[weightIndex] || '').toString().trim() : '';
       const rateStr = rateIndex >= 0 ? (row[rateIndex] || '').toString().trim() : '';
       const destination = destinationIndex >= 0 ? (row[destinationIndex] || '').toString().trim() : '';
+      const country = countryIndex >= 0 ? (row[countryIndex] || '').toString().trim() : '';
       const serviceType = serviceIndex >= 0 ? (row[serviceIndex] || '').toString().trim() : '';
       
       // Parse rate (remove currency symbols, commas, etc.)
@@ -134,6 +139,8 @@ export const uploadPriceSheet = async (req, res) => {
           weight,
           rate,
           destination,
+          country,
+          countryCode: '', // Can be extracted from country name if needed
           serviceType,
           currency: 'INR'
         });
@@ -233,7 +240,7 @@ export const deletePriceSheet = async (req, res) => {
 export const updatePriceSheetItem = async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { itemName, hsnCode, weight, rate, destination, serviceType } = req.body;
+    const { itemName, hsnCode, weight, rate, destination, country, countryCode, serviceType, currency } = req.body;
     
     const priceSheet = await PriceSheet.findById(req.params.id);
     if (!priceSheet) {
@@ -250,7 +257,10 @@ export const updatePriceSheetItem = async (req, res) => {
     if (weight !== undefined) item.weight = weight;
     if (rate !== undefined) item.rate = rate;
     if (destination !== undefined) item.destination = destination;
+    if (country !== undefined) item.country = country;
+    if (countryCode !== undefined) item.countryCode = countryCode;
     if (serviceType !== undefined) item.serviceType = serviceType;
+    if (currency !== undefined) item.currency = currency;
     
     priceSheet.updatedAt = Date.now();
     await priceSheet.save();
@@ -279,6 +289,111 @@ export const deletePriceSheetItem = async (req, res) => {
     await priceSheet.save();
     
     res.json({ message: 'Item deleted successfully' });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Add price sheet item manually
+export const addPriceSheetItem = async (req, res) => {
+  try {
+    const { itemName, hsnCode, weight, rate, destination, country, countryCode, serviceType, currency } = req.body;
+    
+    if (!itemName || !rate) {
+      return res.status(400).json({ message: 'Item name and rate are required' });
+    }
+    
+    const priceSheet = await PriceSheet.findById(req.params.id);
+    if (!priceSheet) {
+      return res.status(404).json({ message: 'Price sheet not found' });
+    }
+    
+    const newItem = {
+      itemName,
+      hsnCode: hsnCode || '',
+      weight: weight || '',
+      rate: parseFloat(rate) || 0,
+      destination: destination || '',
+      country: country || '',
+      countryCode: countryCode || '',
+      serviceType: serviceType || '',
+      currency: currency || 'INR'
+    };
+    
+    priceSheet.items.push(newItem);
+    priceSheet.updatedAt = Date.now();
+    await priceSheet.save();
+    
+    res.json({
+      message: 'Item added successfully',
+      item: priceSheet.items[priceSheet.items.length - 1]
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Add multiple price sheet items (bulk import)
+export const addBulkPriceSheetItems = async (req, res) => {
+  try {
+    const { items } = req.body;
+    
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'Items array is required' });
+    }
+    
+    const priceSheet = await PriceSheet.findById(req.params.id);
+    if (!priceSheet) {
+      return res.status(404).json({ message: 'Price sheet not found' });
+    }
+    
+    const validItems = [];
+    const errors = [];
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const { itemName, hsnCode, weight, rate, destination, country, countryCode, serviceType, currency } = item;
+      
+      if (!itemName || !rate) {
+        errors.push(`Row ${i + 1}: Item name and rate are required`);
+        continue;
+      }
+      
+      const parsedRate = parseFloat(rate);
+      if (isNaN(parsedRate) || parsedRate <= 0) {
+        errors.push(`Row ${i + 1}: Invalid rate value`);
+        continue;
+      }
+      
+      validItems.push({
+        itemName: itemName.toString().trim(),
+        hsnCode: (hsnCode || '').toString().trim(),
+        weight: (weight || '').toString().trim(),
+        rate: parsedRate,
+        destination: (destination || '').toString().trim(),
+        country: (country || '').toString().trim(),
+        countryCode: (countryCode || '').toString().trim(),
+        serviceType: (serviceType || '').toString().trim(),
+        currency: (currency || 'INR').toString().trim()
+      });
+    }
+    
+    if (validItems.length === 0) {
+      return res.status(400).json({ 
+        message: 'No valid items to add',
+        errors 
+      });
+    }
+    
+    priceSheet.items.push(...validItems);
+    priceSheet.updatedAt = Date.now();
+    await priceSheet.save();
+    
+    res.json({
+      message: `Successfully added ${validItems.length} item(s)`,
+      addedCount: validItems.length,
+      errors: errors.length > 0 ? errors : undefined
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

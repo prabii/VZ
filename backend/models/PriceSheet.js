@@ -26,6 +26,15 @@ const priceSheetItemSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  country: {
+    type: String,
+    trim: true,
+    index: true
+  },
+  countryCode: {
+    type: String,
+    trim: true
+  },
   serviceType: {
     type: String,
     trim: true

@@ -7,6 +7,8 @@ import {
   uploadPriceSheet,
   updatePriceSheet,
   deletePriceSheet,
+  addPriceSheetItem,
+  addBulkPriceSheetItems,
   updatePriceSheetItem,
   deletePriceSheetItem
 } from '../controllers/priceSheetController.js';
@@ -48,6 +50,12 @@ router.post('/upload', upload.single('file'), uploadPriceSheet);
 
 // Update price sheet
 router.put('/:id', updatePriceSheet);
+
+// Add price sheet item
+router.post('/:id/items', addPriceSheetItem);
+
+// Add multiple price sheet items (bulk import)
+router.post('/:id/items/bulk', addBulkPriceSheetItems);
 
 // Update price sheet item
 router.put('/:id/items/:itemId', updatePriceSheetItem);
