@@ -1,0 +1,285 @@
+import PriceSheet from '../models/PriceSheet.js';
+import XLSX from 'xlsx';
+
+// Get all price sheets
+export const getAllPriceSheets = async (req, res) => {
+  try {
+    const { isActive, isDefault } = req.query;
+    const query = {};
+    
+    if (isActive !== undefined) {
+      query.isActive = isActive === 'true';
+    }
+    
+    if (isDefault !== undefined) {
+      query.isDefault = isDefault === 'true';
+    }
+    
+    const priceSheets = await PriceSheet.find(query)
+      .populate('uploadedBy', 'username vendorName')
+      .sort({ createdAt: -1 });
+    
+    res.json(priceSheets);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get single price sheet
+export const getPriceSheetById = async (req, res) => {
+  try {
+    const priceSheet = await PriceSheet.findById(req.params.id)
+      .populate('uploadedBy', 'username vendorName');
+    
+    if (!priceSheet) {
+      return res.status(404).json({ message: 'Price sheet not found' });
+    }
+    
+    res.json(priceSheet);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get default/active price sheet
+export const getActivePriceSheet = async (req, res) => {
+  try {
+    let priceSheet = await PriceSheet.findOne({ isDefault: true, isActive: true });
+    
+    // If no default, get the most recent active sheet
+    if (!priceSheet) {
+      priceSheet = await PriceSheet.findOne({ isActive: true })
+        .sort({ createdAt: -1 });
+    }
+    
+    if (!priceSheet) {
+      return res.status(404).json({ message: 'No active price sheet found' });
+    }
+    
+    res.json(priceSheet);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Upload and parse Excel file
+export const uploadPriceSheet = async (req, res) => {
+  try {
+    const { sheetName, description, isDefault, uploadedBy } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ message: 'Excel file is required' });
+    }
+    
+    // Parse Excel file
+    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const sheetName_excel = workbook.SheetNames[0]; // Get first sheet
+    const worksheet = workbook.Sheets[sheetName_excel];
+    
+    // Convert to JSON
+    const data = XLSX.utils.sheet_to_json(worksheet, { 
+      header: 1,
+      defval: ''
+    });
+    
+    // Parse data - assuming first row is headers
+    const headers = data[0] || [];
+    const items = [];
+    
+    // Find column indices
+    const itemNameIndex = headers.findIndex(h => 
+      h && (h.toString().toLowerCase().includes('item') || 
+           h.toString().toLowerCase().includes('product') ||
+           h.toString().toLowerCase().includes('description'))
+    );
+    const hsnIndex = headers.findIndex(h => 
+      h && h.toString().toLowerCase().includes('hsn')
+    );
+    const weightIndex = headers.findIndex(h => 
+      h && (h.toString().toLowerCase().includes('weight') ||
+           h.toString().toLowerCase().includes('kg'))
+    );
+    const rateIndex = headers.findIndex(h => 
+      h && (h.toString().toLowerCase().includes('rate') ||
+           h.toString().toLowerCase().includes('price') ||
+           h.toString().toLowerCase().includes('amount'))
+    );
+    const destinationIndex = headers.findIndex(h => 
+      h && h.toString().toLowerCase().includes('destination')
+    );
+    const serviceIndex = headers.findIndex(h => 
+      h && h.toString().toLowerCase().includes('service')
+    );
+    
+    // Process rows (skip header row)
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row || row.length === 0) continue;
+      
+      const itemName = itemNameIndex >= 0 ? (row[itemNameIndex] || '').toString().trim() : '';
+      const hsnCode = hsnIndex >= 0 ? (row[hsnIndex] || '').toString().trim() : '';
+      const weight = weightIndex >= 0 ? (row[weightIndex] || '').toString().trim() : '';
+      const rateStr = rateIndex >= 0 ? (row[rateIndex] || '').toString().trim() : '';
+      const destination = destinationIndex >= 0 ? (row[destinationIndex] || '').toString().trim() : '';
+      const serviceType = serviceIndex >= 0 ? (row[serviceIndex] || '').toString().trim() : '';
+      
+      // Parse rate (remove currency symbols, commas, etc.)
+      const rate = parseFloat(rateStr.toString().replace(/[₹,$,\s,]/g, '')) || 0;
+      
+      // Only add if we have at least item name and rate
+      if (itemName && rate > 0) {
+        items.push({
+          itemName,
+          hsnCode,
+          weight,
+          rate,
+          destination,
+          serviceType,
+          currency: 'INR'
+        });
+      }
+    }
+    
+    if (items.length === 0) {
+      return res.status(400).json({ message: 'No valid price items found in the Excel file' });
+    }
+    
+    // If setting as default, unset other defaults
+    if (isDefault === true || isDefault === 'true') {
+      await PriceSheet.updateMany({}, { isDefault: false });
+    }
+    
+    // Create price sheet
+    const priceSheet = new PriceSheet({
+      sheetName: sheetName || `Price Sheet ${new Date().toLocaleDateString()}`,
+      description: description || '',
+      items,
+      originalFileName: req.file.originalname,
+      uploadedBy: uploadedBy || undefined,
+      isActive: true,
+      isDefault: isDefault === true || isDefault === 'true'
+    });
+    
+    await priceSheet.save();
+    
+    res.status(201).json({
+      message: 'Price sheet uploaded successfully',
+      priceSheet: await PriceSheet.findById(priceSheet._id).populate('uploadedBy', 'username vendorName')
+    });
+  } catch (error) {
+    console.error('Error uploading price sheet:', error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Update price sheet
+export const updatePriceSheet = async (req, res) => {
+  try {
+    const { sheetName, description, isActive, isDefault, items } = req.body;
+    
+    const updateData = {};
+    if (sheetName !== undefined) updateData.sheetName = sheetName;
+    if (description !== undefined) updateData.description = description;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (isDefault !== undefined) {
+      updateData.isDefault = isDefault;
+      // If setting as default, unset other defaults
+      if (isDefault === true || isDefault === 'true') {
+        await PriceSheet.updateMany(
+          { _id: { $ne: req.params.id } },
+          { isDefault: false }
+        );
+      }
+    }
+    if (items !== undefined) updateData.items = items;
+    
+    updateData.updatedAt = Date.now();
+    
+    const priceSheet = await PriceSheet.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate('uploadedBy', 'username vendorName');
+    
+    if (!priceSheet) {
+      return res.status(404).json({ message: 'Price sheet not found' });
+    }
+    
+    res.json({
+      message: 'Price sheet updated successfully',
+      priceSheet
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Delete price sheet
+export const deletePriceSheet = async (req, res) => {
+  try {
+    const priceSheet = await PriceSheet.findByIdAndDelete(req.params.id);
+    
+    if (!priceSheet) {
+      return res.status(404).json({ message: 'Price sheet not found' });
+    }
+    
+    res.json({ message: 'Price sheet deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Update price sheet item
+export const updatePriceSheetItem = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    const { itemName, hsnCode, weight, rate, destination, serviceType } = req.body;
+    
+    const priceSheet = await PriceSheet.findById(req.params.id);
+    if (!priceSheet) {
+      return res.status(404).json({ message: 'Price sheet not found' });
+    }
+    
+    const item = priceSheet.items.id(itemId);
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+    
+    if (itemName !== undefined) item.itemName = itemName;
+    if (hsnCode !== undefined) item.hsnCode = hsnCode;
+    if (weight !== undefined) item.weight = weight;
+    if (rate !== undefined) item.rate = rate;
+    if (destination !== undefined) item.destination = destination;
+    if (serviceType !== undefined) item.serviceType = serviceType;
+    
+    priceSheet.updatedAt = Date.now();
+    await priceSheet.save();
+    
+    res.json({
+      message: 'Item updated successfully',
+      item
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Delete price sheet item
+export const deletePriceSheetItem = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    
+    const priceSheet = await PriceSheet.findById(req.params.id);
+    if (!priceSheet) {
+      return res.status(404).json({ message: 'Price sheet not found' });
+    }
+    
+    priceSheet.items.id(itemId).remove();
+    priceSheet.updatedAt = Date.now();
+    await priceSheet.save();
+    
+    res.json({ message: 'Item deleted successfully' });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
