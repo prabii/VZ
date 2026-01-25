@@ -10,6 +10,7 @@
     "seed:branches": "node scripts/seedBranchLocations.js",
     "import:prices": "node scripts/importPriceSheet.js",
     "import:prices:api": "node scripts/importPriceSheetViaAPI.js",
+    "import:fedex": "node scripts/importFedexPricing.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
