@@ -8,6 +8,7 @@ import awbRoutes from './routes/awbRoutes.js';
 import branchLocationRoutes from './routes/branchLocationRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import priceSheetRoutes from './routes/priceSheetRoutes.js';
+import galleryRoutes from './routes/galleryRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -62,6 +63,10 @@ app.use('/api/awb', awbRoutes);
 app.use('/api/branch-locations', branchLocationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/price-sheets', priceSheetRoutes);
+app.use('/api/gallery', galleryRoutes);
+
+// Serve uploaded files
+app.use('/uploads', express.static('uploads'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
