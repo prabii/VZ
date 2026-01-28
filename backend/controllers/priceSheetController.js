@@ -331,6 +331,8 @@ export const deletePriceSheetItem = async (req, res) => {
   try {
     const { id, itemId } = req.params;
     
+    console.log('Delete item request:', { id, itemId, params: req.params });
+    
     if (!id || !itemId) {
       return res.status(400).json({ message: 'Price sheet ID and item ID are required' });
     }
@@ -340,9 +342,21 @@ export const deletePriceSheetItem = async (req, res) => {
       return res.status(404).json({ message: 'Price sheet not found' });
     }
     
-    const item = priceSheet.items.id(itemId);
+    // Try to find the item by _id
+    let item = priceSheet.items.id(itemId);
+    
+    // If not found by id(), try finding by _id string match
     if (!item) {
-      return res.status(404).json({ message: 'Item not found in price sheet' });
+      item = priceSheet.items.find(item => item._id && item._id.toString() === itemId);
+    }
+    
+    if (!item) {
+      console.log('Available items:', priceSheet.items.map(i => ({ _id: i._id?.toString(), itemName: i.itemName })));
+      return res.status(404).json({ 
+        message: 'Item not found in price sheet',
+        itemId: itemId,
+        availableItems: priceSheet.items.length
+      });
     }
     
     // Remove the item from the array
