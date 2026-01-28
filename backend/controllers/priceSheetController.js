@@ -18,10 +18,25 @@ export const getAllPriceSheets = async (req, res) => {
     // If vendorId is provided, only return price sheets assigned to that vendor
     // or price sheets with no assigned vendors (available to all)
     if (vendorId) {
+      const mongoose = (await import('mongoose')).default;
+      // Convert vendorId to ObjectId for proper comparison
+      let vendorObjectId;
+      try {
+        vendorObjectId = mongoose.Types.ObjectId.isValid(vendorId) 
+          ? new mongoose.Types.ObjectId(vendorId) 
+          : vendorId;
+      } catch (e) {
+        vendorObjectId = vendorId;
+      }
+      
       query.$or = [
-        { assignedVendors: { $in: [vendorId] } },
-        { assignedVendors: { $size: 0 } } // Empty array means available to all
+        { assignedVendors: { $in: [vendorObjectId] } }, // Vendor is in the assigned vendors array
+        { assignedVendors: { $size: 0 } }, // Empty array means available to all vendors
+        { assignedVendors: { $exists: false } }, // Field doesn't exist (old documents before assignment feature)
+        { assignedVendors: null } // Field is null
       ];
+      
+      console.log('Filtering price sheets for vendor:', vendorId, 'Query:', JSON.stringify(query));
     }
     
     const priceSheets = await PriceSheet.find(query)
@@ -29,8 +44,11 @@ export const getAllPriceSheets = async (req, res) => {
       .populate('assignedVendors', 'username vendorName')
       .sort({ createdAt: -1 });
     
+    console.log(`Found ${priceSheets.length} price sheets for vendor ${vendorId || 'all'}`);
+    
     res.json(priceSheets);
   } catch (error) {
+    console.error('Error getting price sheets:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -59,10 +77,25 @@ export const getActivePriceSheet = async (req, res) => {
     
     // If vendorId is provided, filter by assigned vendors
     if (vendorId) {
+      const mongoose = (await import('mongoose')).default;
+      // Convert vendorId to ObjectId for proper comparison
+      let vendorObjectId;
+      try {
+        vendorObjectId = mongoose.Types.ObjectId.isValid(vendorId) 
+          ? new mongoose.Types.ObjectId(vendorId) 
+          : vendorId;
+      } catch (e) {
+        vendorObjectId = vendorId;
+      }
+      
       query.$or = [
-        { assignedVendors: { $in: [vendorId] } },
-        { assignedVendors: { $size: 0 } } // Empty array means available to all
+        { assignedVendors: { $in: [vendorObjectId] } }, // Vendor is in the assigned vendors array
+        { assignedVendors: { $size: 0 } }, // Empty array means available to all vendors
+        { assignedVendors: { $exists: false } }, // Field doesn't exist (old documents before assignment feature)
+        { assignedVendors: null } // Field is null
       ];
+      
+      console.log('Getting active price sheet for vendor:', vendorId);
     }
     
     let priceSheet = await PriceSheet.findOne({ ...query, isDefault: true })
@@ -79,8 +112,11 @@ export const getActivePriceSheet = async (req, res) => {
       return res.status(404).json({ message: 'No active price sheet found' });
     }
     
+    console.log('Found active price sheet:', priceSheet.sheetName, 'Assigned vendors:', priceSheet.assignedVendors?.map(v => v._id || v));
+    
     res.json(priceSheet);
   } catch (error) {
+    console.error('Error getting active price sheet:', error);
     res.status(500).json({ message: error.message });
   }
 };
