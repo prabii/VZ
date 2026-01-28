@@ -54,11 +54,15 @@ export const upload = multer({
 // Get all gallery items
 export const getAllGalleryItems = async (req, res) => {
   try {
-    const { type, isActive } = req.query;
+    const { type, isActive, category } = req.query;
     const query = {};
     
     if (type) {
       query.type = type;
+    }
+    
+    if (category) {
+      query.category = category;
     }
     
     if (isActive !== undefined) {
@@ -96,7 +100,7 @@ export const getGalleryItemById = async (req, res) => {
 // Create gallery item (for URLs)
 export const createGalleryItem = async (req, res) => {
   try {
-    const { type, url, title, description, uploadedBy } = req.body;
+    const { type, url, title, description, uploadedBy, category } = req.body;
     
     if (!type || !url) {
       return res.status(400).json({ message: 'Type and URL are required' });
@@ -108,6 +112,7 @@ export const createGalleryItem = async (req, res) => {
       title: title?.trim() || '',
       description: description?.trim() || '',
       uploadedBy: uploadedBy || undefined,
+      category: category || 'gallery',
       isActive: true
     });
     
@@ -125,7 +130,7 @@ export const createGalleryItem = async (req, res) => {
 // Upload gallery file (image or video)
 export const uploadGalleryFile = async (req, res) => {
   try {
-    const { type, title, description, uploadedBy, _id } = req.body;
+    const { type, title, description, uploadedBy, _id, category } = req.body;
     
     if (!req.file) {
       return res.status(400).json({ message: 'File is required' });
@@ -157,6 +162,7 @@ export const uploadGalleryFile = async (req, res) => {
       item.url = fileUrl;
       if (title) item.title = title.trim();
       if (description) item.description = description.trim();
+      if (category) item.category = category;
       
       await item.save();
       
@@ -172,6 +178,7 @@ export const uploadGalleryFile = async (req, res) => {
         title: title?.trim() || '',
         description: description?.trim() || '',
         uploadedBy: uploadedBy || undefined,
+        category: category || 'gallery',
         isActive: true
       });
       

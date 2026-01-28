@@ -342,15 +342,13 @@ export const deletePriceSheetItem = async (req, res) => {
       return res.status(404).json({ message: 'Price sheet not found' });
     }
     
-    // Try to find the item by _id
-    let item = priceSheet.items.id(itemId);
+    // Find the item index in the array
+    const itemIndex = priceSheet.items.findIndex(item => {
+      const itemIdStr = item._id ? item._id.toString() : '';
+      return itemIdStr === itemId;
+    });
     
-    // If not found by id(), try finding by _id string match
-    if (!item) {
-      item = priceSheet.items.find(item => item._id && item._id.toString() === itemId);
-    }
-    
-    if (!item) {
+    if (itemIndex === -1) {
       console.log('Available items:', priceSheet.items.map(i => ({ _id: i._id?.toString(), itemName: i.itemName })));
       return res.status(404).json({ 
         message: 'Item not found in price sheet',
@@ -359,8 +357,8 @@ export const deletePriceSheetItem = async (req, res) => {
       });
     }
     
-    // Remove the item from the array
-    item.remove();
+    // Remove the item from the array using splice
+    priceSheet.items.splice(itemIndex, 1);
     priceSheet.updatedAt = Date.now();
     await priceSheet.save();
     

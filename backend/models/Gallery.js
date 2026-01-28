@@ -32,6 +32,12 @@ const gallerySchema = new mongoose.Schema({
     type: Boolean,
     default: true,
     index: true
+  },
+  category: {
+    type: String,
+    enum: ['gallery', 'pricing'],
+    default: 'gallery',
+    index: true
   }
 }, {
   timestamps: true
