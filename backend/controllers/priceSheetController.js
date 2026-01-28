@@ -4,7 +4,7 @@ import XLSX from 'xlsx';
 // Get all price sheets
 export const getAllPriceSheets = async (req, res) => {
   try {
-    const { isActive, isDefault } = req.query;
+    const { isActive, isDefault, vendorId } = req.query;
     const query = {};
     
     if (isActive !== undefined) {
@@ -15,8 +15,18 @@ export const getAllPriceSheets = async (req, res) => {
       query.isDefault = isDefault === 'true';
     }
     
+    // If vendorId is provided, only return price sheets assigned to that vendor
+    // or price sheets with no assigned vendors (available to all)
+    if (vendorId) {
+      query.$or = [
+        { assignedVendors: { $in: [vendorId] } },
+        { assignedVendors: { $size: 0 } } // Empty array means available to all
+      ];
+    }
+    
     const priceSheets = await PriceSheet.find(query)
       .populate('uploadedBy', 'username vendorName')
+      .populate('assignedVendors', 'username vendorName')
       .sort({ createdAt: -1 });
     
     res.json(priceSheets);
@@ -44,11 +54,24 @@ export const getPriceSheetById = async (req, res) => {
 // Get default/active price sheet
 export const getActivePriceSheet = async (req, res) => {
   try {
-    let priceSheet = await PriceSheet.findOne({ isDefault: true, isActive: true });
+    const { vendorId } = req.query;
+    const query = { isActive: true };
+    
+    // If vendorId is provided, filter by assigned vendors
+    if (vendorId) {
+      query.$or = [
+        { assignedVendors: { $in: [vendorId] } },
+        { assignedVendors: { $size: 0 } } // Empty array means available to all
+      ];
+    }
+    
+    let priceSheet = await PriceSheet.findOne({ ...query, isDefault: true })
+      .populate('assignedVendors', 'username vendorName');
     
     // If no default, get the most recent active sheet
     if (!priceSheet) {
-      priceSheet = await PriceSheet.findOne({ isActive: true })
+      priceSheet = await PriceSheet.findOne(query)
+        .populate('assignedVendors', 'username vendorName')
         .sort({ createdAt: -1 });
     }
     
@@ -65,7 +88,7 @@ export const getActivePriceSheet = async (req, res) => {
 // Create empty price sheet
 export const createPriceSheet = async (req, res) => {
   try {
-    const { sheetName, description, isDefault, uploadedBy } = req.body;
+    const { sheetName, description, isDefault, uploadedBy, assignedVendors } = req.body;
     
     if (!sheetName || !sheetName.trim()) {
       return res.status(400).json({ message: 'Sheet name is required' });
@@ -76,12 +99,36 @@ export const createPriceSheet = async (req, res) => {
       await PriceSheet.updateMany({}, { isDefault: false });
     }
     
+    // Validate uploadedBy - must be a valid MongoDB ObjectId or undefined
+    let validUploadedBy = undefined;
+    if (uploadedBy) {
+      // Check if it's a valid ObjectId format (24 hex characters)
+      const mongoose = (await import('mongoose')).default;
+      if (mongoose.Types.ObjectId.isValid(uploadedBy)) {
+        validUploadedBy = uploadedBy;
+      } else {
+        console.warn(`Invalid uploadedBy value provided: ${uploadedBy}, ignoring it`);
+        // Set to undefined if invalid
+        validUploadedBy = undefined;
+      }
+    }
+    
+    // Validate assignedVendors - must be an array of valid ObjectIds
+    const mongoose = (await import('mongoose')).default;
+    let validAssignedVendors = [];
+    if (assignedVendors && Array.isArray(assignedVendors)) {
+      validAssignedVendors = assignedVendors.filter(vendorId => 
+        mongoose.Types.ObjectId.isValid(vendorId)
+      );
+    }
+    
     // Create price sheet with empty items
     const priceSheet = new PriceSheet({
       sheetName: sheetName.trim(),
       description: description || '',
       items: [],
-      uploadedBy: uploadedBy || undefined,
+      uploadedBy: validUploadedBy,
+      assignedVendors: validAssignedVendors,
       isActive: true,
       isDefault: isDefault === true || isDefault === 'true'
     });
@@ -90,7 +137,9 @@ export const createPriceSheet = async (req, res) => {
     
     res.status(201).json({
       message: 'Price sheet created successfully',
-      priceSheet: await PriceSheet.findById(priceSheet._id).populate('uploadedBy', 'username vendorName')
+      priceSheet: await PriceSheet.findById(priceSheet._id)
+        .populate('uploadedBy', 'username vendorName')
+        .populate('assignedVendors', 'username vendorName')
     });
   } catch (error) {
     console.error('Error creating price sheet:', error);
@@ -218,7 +267,7 @@ export const uploadPriceSheet = async (req, res) => {
 // Update price sheet
 export const updatePriceSheet = async (req, res) => {
   try {
-    const { sheetName, description, isActive, isDefault, items } = req.body;
+    const { sheetName, description, isActive, isDefault, items, assignedVendors } = req.body;
     
     const updateData = {};
     if (sheetName !== undefined) updateData.sheetName = sheetName;
@@ -236,13 +285,27 @@ export const updatePriceSheet = async (req, res) => {
     }
     if (items !== undefined) updateData.items = items;
     
+    // Validate and update assignedVendors
+    if (assignedVendors !== undefined) {
+      const mongoose = (await import('mongoose')).default;
+      if (Array.isArray(assignedVendors)) {
+        updateData.assignedVendors = assignedVendors.filter(vendorId => 
+          mongoose.Types.ObjectId.isValid(vendorId)
+        );
+      } else {
+        updateData.assignedVendors = [];
+      }
+    }
+    
     updateData.updatedAt = Date.now();
     
     const priceSheet = await PriceSheet.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
-    ).populate('uploadedBy', 'username vendorName');
+    )
+      .populate('uploadedBy', 'username vendorName')
+      .populate('assignedVendors', 'username vendorName');
     
     if (!priceSheet) {
       return res.status(404).json({ message: 'Price sheet not found' });

@@ -74,6 +74,13 @@ const priceSheetSchema = new mongoose.Schema({
     ref: 'User'
   },
   
+  // Vendor Assignment
+  assignedVendors: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'User',
+    default: []
+  },
+  
   // Status
   isActive: {
     type: Boolean,
