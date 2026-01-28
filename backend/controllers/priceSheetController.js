@@ -275,10 +275,14 @@ export const deletePriceSheet = async (req, res) => {
 // Update price sheet item
 export const updatePriceSheetItem = async (req, res) => {
   try {
-    const { itemId } = req.params;
+    const { id, itemId } = req.params;
     const { itemName, hsnCode, weight, rate, destination, country, countryCode, serviceType, currency } = req.body;
     
-    const priceSheet = await PriceSheet.findById(req.params.id);
+    if (!id || !itemId) {
+      return res.status(400).json({ message: 'Price sheet ID and item ID are required' });
+    }
+    
+    const priceSheet = await PriceSheet.findById(id);
     if (!priceSheet) {
       return res.status(404).json({ message: 'Price sheet not found' });
     }
@@ -288,45 +292,71 @@ export const updatePriceSheetItem = async (req, res) => {
       return res.status(404).json({ message: 'Item not found' });
     }
     
+    // Update fields - explicitly set even if empty string to allow clearing fields
     if (itemName !== undefined) item.itemName = itemName;
-    if (hsnCode !== undefined) item.hsnCode = hsnCode;
-    if (weight !== undefined) item.weight = weight;
-    if (rate !== undefined) item.rate = rate;
-    if (destination !== undefined) item.destination = destination;
-    if (country !== undefined) item.country = country;
-    if (countryCode !== undefined) item.countryCode = countryCode;
-    if (serviceType !== undefined) item.serviceType = serviceType;
-    if (currency !== undefined) item.currency = currency;
+    if (hsnCode !== undefined) item.hsnCode = hsnCode || '';
+    if (weight !== undefined) item.weight = weight || '';
+    if (rate !== undefined) item.rate = parseFloat(rate) || 0;
+    if (destination !== undefined) item.destination = destination || '';
+    // Country update - explicitly set the value (even if empty string)
+    if (country !== undefined) {
+      item.country = country || '';
+    }
+    if (countryCode !== undefined) {
+      item.countryCode = countryCode || '';
+    }
+    if (serviceType !== undefined) item.serviceType = serviceType || '';
+    if (currency !== undefined) item.currency = currency || 'INR';
     
     priceSheet.updatedAt = Date.now();
     await priceSheet.save();
     
+    // Return the updated item
+    const updatedItem = priceSheet.items.id(itemId);
     res.json({
       message: 'Item updated successfully',
-      item
+      item: updatedItem
     });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Error updating price sheet item:', error);
+    res.status(400).json({ 
+      message: error.message || 'Failed to update item',
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
 // Delete price sheet item
 export const deletePriceSheetItem = async (req, res) => {
   try {
-    const { itemId } = req.params;
+    const { id, itemId } = req.params;
     
-    const priceSheet = await PriceSheet.findById(req.params.id);
+    if (!id || !itemId) {
+      return res.status(400).json({ message: 'Price sheet ID and item ID are required' });
+    }
+    
+    const priceSheet = await PriceSheet.findById(id);
     if (!priceSheet) {
       return res.status(404).json({ message: 'Price sheet not found' });
     }
     
-    priceSheet.items.id(itemId).remove();
+    const item = priceSheet.items.id(itemId);
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found in price sheet' });
+    }
+    
+    // Remove the item from the array
+    item.remove();
     priceSheet.updatedAt = Date.now();
     await priceSheet.save();
     
     res.json({ message: 'Item deleted successfully' });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Error deleting price sheet item:', error);
+    res.status(400).json({ 
+      message: error.message || 'Failed to delete item',
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
