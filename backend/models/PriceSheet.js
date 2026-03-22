@@ -90,6 +90,11 @@ const priceSheetSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isPublic: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
   
   // Metadata
   createdAt: {
@@ -108,6 +113,7 @@ const priceSheetSchema = new mongoose.Schema({
 priceSheetSchema.index({ isActive: 1 });
 priceSheetSchema.index({ isDefault: 1 });
 priceSheetSchema.index({ createdAt: -1 });
+priceSheetSchema.index({ isPublic: 1 });
 
 // Ensure only one default sheet
 priceSheetSchema.pre('save', async function(next) {

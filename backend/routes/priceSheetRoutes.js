@@ -4,6 +4,7 @@ import {
   getAllPriceSheets,
   getPriceSheetById,
   getActivePriceSheet,
+  getPublicPriceSheet,
   createPriceSheet,
   uploadPriceSheet,
   updatePriceSheet,
@@ -42,6 +43,9 @@ router.get('/', getAllPriceSheets);
 
 // Get active/default price sheet (for public frontend)
 router.get('/active', getActivePriceSheet);
+
+// Get public/customer-facing price sheet
+router.get('/public', getPublicPriceSheet);
 
 // Get price sheet by ID
 router.get('/:id', getPriceSheetById);

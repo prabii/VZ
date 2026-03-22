@@ -4,7 +4,7 @@ import XLSX from 'xlsx';
 // Get all price sheets
 export const getAllPriceSheets = async (req, res) => {
   try {
-    const { isActive, isDefault, vendorId } = req.query;
+    const { isActive, isDefault, isPublic, vendorId } = req.query;
     const query = {};
     
     if (isActive !== undefined) {
@@ -14,7 +14,11 @@ export const getAllPriceSheets = async (req, res) => {
     if (isDefault !== undefined) {
       query.isDefault = isDefault === 'true';
     }
-    
+
+    if (isPublic !== undefined) {
+      query.isPublic = isPublic === 'true';
+    }
+
     // If vendorId is provided, only return price sheets assigned to that vendor
     // or price sheets with no assigned vendors (available to all)
     if (vendorId) {
@@ -124,7 +128,7 @@ export const getActivePriceSheet = async (req, res) => {
 // Create empty price sheet
 export const createPriceSheet = async (req, res) => {
   try {
-    const { sheetName, description, isDefault, uploadedBy, assignedVendors } = req.body;
+    const { sheetName, description, isDefault, isPublic, uploadedBy, assignedVendors } = req.body;
     
     if (!sheetName || !sheetName.trim()) {
       return res.status(400).json({ message: 'Sheet name is required' });
@@ -166,11 +170,12 @@ export const createPriceSheet = async (req, res) => {
       uploadedBy: validUploadedBy,
       assignedVendors: validAssignedVendors,
       isActive: true,
-      isDefault: isDefault === true || isDefault === 'true'
+      isDefault: isDefault === true || isDefault === 'true',
+      isPublic: isPublic === true || isPublic === 'true'
     });
-    
+
     await priceSheet.save();
-    
+
     res.status(201).json({
       message: 'Price sheet created successfully',
       priceSheet: await PriceSheet.findById(priceSheet._id)
@@ -303,7 +308,7 @@ export const uploadPriceSheet = async (req, res) => {
 // Update price sheet
 export const updatePriceSheet = async (req, res) => {
   try {
-    const { sheetName, description, isActive, isDefault, items, assignedVendors } = req.body;
+    const { sheetName, description, isActive, isDefault, isPublic, items, assignedVendors } = req.body;
     
     const updateData = {};
     if (sheetName !== undefined) updateData.sheetName = sheetName;
@@ -320,7 +325,8 @@ export const updatePriceSheet = async (req, res) => {
       }
     }
     if (items !== undefined) updateData.items = items;
-    
+    if (isPublic !== undefined) updateData.isPublic = isPublic;
+
     // Validate and update assignedVendors
     if (assignedVendors !== undefined) {
       const mongoose = (await import('mongoose')).default;
@@ -573,5 +579,19 @@ export const addBulkPriceSheetItems = async (req, res) => {
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+};
+
+// Get public/customer-facing price sheet
+export const getPublicPriceSheet = async (req, res) => {
+  try {
+    const priceSheet = await PriceSheet.findOne({ isPublic: true, isActive: true })
+      .sort({ createdAt: -1 });
+    if (!priceSheet) {
+      return res.status(404).json({ message: 'No public price sheet found' });
+    }
+    res.json(priceSheet);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
