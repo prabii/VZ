@@ -582,7 +582,7 @@ export const addBulkPriceSheetItems = async (req, res) => {
   }
 };
 
-// Get public/customer-facing price sheet (combines all public sheets)
+// Get public/customer-facing price sheets (returns all public sheets as array)
 export const getPublicPriceSheet = async (req, res) => {
   try {
     const priceSheets = await PriceSheet.find({ isPublic: true, isActive: true })
@@ -590,10 +590,8 @@ export const getPublicPriceSheet = async (req, res) => {
     if (!priceSheets || priceSheets.length === 0) {
       return res.status(404).json({ message: 'No public price sheet found' });
     }
-    // Combine items from all public sheets so all countries show up
-    const allItems = priceSheets.flatMap(sheet => sheet.items);
-    const base = priceSheets[0].toObject();
-    res.json({ ...base, items: allItems });
+    // Return all sheets as array so frontend can show each as a carousel card
+    res.json(priceSheets);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
