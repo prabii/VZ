@@ -583,10 +583,18 @@ export const addBulkPriceSheetItems = async (req, res) => {
 };
 
 // Get public/customer-facing price sheets (returns all public sheets as array)
+// Only returns sheets with NO assigned vendors — vendor-specific sheets are private
 export const getPublicPriceSheet = async (req, res) => {
   try {
-    const priceSheets = await PriceSheet.find({ isPublic: true, isActive: true })
-      .sort({ createdAt: -1 });
+    const priceSheets = await PriceSheet.find({
+      isPublic: true,
+      isActive: true,
+      $or: [
+        { assignedVendors: { $size: 0 } },
+        { assignedVendors: { $exists: false } },
+        { assignedVendors: null }
+      ]
+    }).sort({ createdAt: -1 });
     if (!priceSheets || priceSheets.length === 0) {
       return res.status(404).json({ message: 'No public price sheet found' });
     }
