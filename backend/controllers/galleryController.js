@@ -139,8 +139,10 @@ export const uploadGalleryFile = async (req, res) => {
     // Determine file type if not provided
     const fileType = type || (req.file.mimetype.startsWith('image/') ? 'image' : 'video');
     
-    // Construct URL - adjust based on your server setup
-    const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+    // Construct URL from the incoming request so it works in any environment
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const baseUrl = process.env.SERVER_BASE_URL || `${protocol}://${host}`;
     const fileUrl = `${baseUrl}/uploads/gallery/${req.file.filename}`;
     
     if (_id) {
