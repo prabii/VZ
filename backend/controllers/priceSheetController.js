@@ -33,13 +33,9 @@ export const getAllPriceSheets = async (req, res) => {
         vendorObjectId = vendorId;
       }
       
-      query.$or = [
-        { assignedVendors: { $in: [vendorObjectId] } }, // Vendor is in the assigned vendors array
-        { assignedVendors: { $size: 0 } }, // Empty array means available to all vendors
-        { assignedVendors: { $exists: false } }, // Field doesn't exist (old documents before assignment feature)
-        { assignedVendors: null } // Field is null
-      ];
-      
+      // Only return sheets explicitly assigned to this vendor
+      query.assignedVendors = { $in: [vendorObjectId] };
+
       console.log('Filtering price sheets for vendor:', vendorId, 'Query:', JSON.stringify(query));
     }
     
@@ -92,13 +88,9 @@ export const getActivePriceSheet = async (req, res) => {
         vendorObjectId = vendorId;
       }
       
-      query.$or = [
-        { assignedVendors: { $in: [vendorObjectId] } }, // Vendor is in the assigned vendors array
-        { assignedVendors: { $size: 0 } }, // Empty array means available to all vendors
-        { assignedVendors: { $exists: false } }, // Field doesn't exist (old documents before assignment feature)
-        { assignedVendors: null } // Field is null
-      ];
-      
+      // Only return sheets explicitly assigned to this vendor
+      query.assignedVendors = { $in: [vendorObjectId] };
+
       console.log('Getting active price sheet for vendor:', vendorId);
     }
     
