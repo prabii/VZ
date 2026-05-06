@@ -27,6 +27,10 @@ const branchLocationSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  mapLink: {
+    type: String,
+    trim: true
+  },
   // Optional fields for future expansion
   state: {
     type: String,
